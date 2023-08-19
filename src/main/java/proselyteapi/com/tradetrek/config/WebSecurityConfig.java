@@ -39,7 +39,7 @@ public class WebSecurityConfig {
 
     @Value("${jwt.secret}")
     private String secret;
-    private final String[] publicRoutes = {"/api/register", "/api/login"};
+    private final String[] publicRoutes = {"/api/v1/register", "/api/v1//login"};
     private final UserRepository userRepository;
     private final RequestRateLimiter requestRateLimiter;
 
@@ -63,7 +63,7 @@ public class WebSecurityConfig {
 
     @Bean
     public WebFilter combinedWebFilter(RequestRateLimiter rateLimiter) {
-        List<String> allowedUrls = Arrays.asList("/api/register", "/api/login");
+        List<String> allowedUrls = Arrays.asList("/api/v1/register", "/api/v1/login");
 
         return (exchange, chain) ->
                 rateLimiter.checkAndRegisterRequest()
@@ -73,7 +73,7 @@ public class WebSecurityConfig {
                             } else {
                                 return userRepository.existsByApiKey(exchange.getRequest().getHeaders().getFirst("API-KEY"))
                                         .flatMap(valid -> {
-                                            if (valid) {
+                                            if (Boolean.TRUE.equals(valid)) {
                                                 return chain.filter(exchange);
                                             } else {
                                                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);

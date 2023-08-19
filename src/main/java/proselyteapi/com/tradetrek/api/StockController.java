@@ -11,7 +11,7 @@ import proselyteapi.com.tradetrek.service.StockService;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class StockController {
 

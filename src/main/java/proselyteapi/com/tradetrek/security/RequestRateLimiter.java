@@ -16,8 +16,8 @@ public class RequestRateLimiter {
     private final Duration interval;
 
     public RequestRateLimiter() {
-        this.permits = 150; // Количество разрешений в секунду
-        this.interval = Duration.ofSeconds(1); // Интервал в секундах
+        this.permits = 150;
+        this.interval = Duration.ofSeconds(1);
         this.semaphore = new Semaphore(permits);
     }
 
@@ -28,7 +28,7 @@ public class RequestRateLimiter {
                         .doOnNext(t -> semaphore.release())
                         .then();
             } else {
-                return Mono.error(new TooManyRequestsException("Too many requests"));
+                return Mono.error(new TooManyRequestsException("Слишком много запросов"));
             }
         });
     }

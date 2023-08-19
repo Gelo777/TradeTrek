@@ -4,37 +4,48 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebExceptionHandler;
+import proselyteapi.com.tradetrek.model.exception.AuthException;
+import proselyteapi.com.tradetrek.model.exception.EntityNotFoundException;
+import proselyteapi.com.tradetrek.model.exception.TokenExpiredException;
+import proselyteapi.com.tradetrek.model.exception.TooManyRequestsException;
+import proselyteapi.com.tradetrek.model.exception.UnauthorizedException;
 import reactor.core.publisher.Mono;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 @Order(-2)
 public class GlobalExceptionHandler implements WebExceptionHandler {
 
+
+    private static final Map<Class<? extends RuntimeException>, HttpStatus> exceptionStatusMap = new HashMap<>();
+
+    static {
+        exceptionStatusMap.put(UnauthorizedException.class, HttpStatus.UNAUTHORIZED);
+        exceptionStatusMap.put(TooManyRequestsException.class, HttpStatus.TOO_MANY_REQUESTS);
+        exceptionStatusMap.put(TokenExpiredException.class, HttpStatus.UNAUTHORIZED);
+        exceptionStatusMap.put(EntityNotFoundException.class, HttpStatus.NOT_FOUND);
+        exceptionStatusMap.put(AuthException.class, HttpStatus.UNAUTHORIZED);
+    }
+
     @Override
     public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
-        if (ex instanceof RuntimeException) {
-            return handleResponseStatusException(exchange, (ResponseStatusException) ex);
-        } else {
-            return handleUnknownError(exchange, ex);
-        }
+        HttpStatus status = determineHttpStatus(ex);
+        String errorMessage = ex.getMessage() != null && !ex.getMessage().isEmpty() ? ex.getMessage() : "Internal server error";
+        return handleException(exchange, status, errorMessage);
     }
 
-    private Mono<Void> handleResponseStatusException(ServerWebExchange exchange, ResponseStatusException ex) {
-        exchange.getResponse().setStatusCode(ex.getStatusCode());
-        return exchange.getResponse().setComplete();
+    private HttpStatus determineHttpStatus(Throwable ex) {
+        return exceptionStatusMap.getOrDefault(ex.getClass(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    private Mono<Void> handleUnknownError(ServerWebExchange exchange, Throwable ex) {
-        exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
+    private Mono<Void> handleException(ServerWebExchange exchange, HttpStatus status, String errorMessage) {
+        exchange.getResponse().setStatusCode(status);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
-        String errorMessage = "Internal server error";
-        if (ex.getMessage() != null && !ex.getMessage().isEmpty()) {
-            errorMessage = ex.getMessage();
-        }
         String errorResponse = "{\"error\": \"" + errorMessage + "\"}";
         return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(errorResponse.getBytes())));
     }

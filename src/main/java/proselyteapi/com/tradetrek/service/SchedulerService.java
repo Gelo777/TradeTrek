@@ -26,7 +26,7 @@ public class SchedulerService {
 
     @PostConstruct
     public void initializeStockPrices() {
-        log.info("Initial stock prices initialized");
+        log.info("Инициализация начальных цен акций");
 
         Stock stock1 = new Stock();
         stock1.setPrice(generateRandomInitialPrice());
@@ -50,7 +50,8 @@ public class SchedulerService {
         updateCache();
         stockRepository.findAll()
                 .flatMap(this::updateStockPrice)
-                .subscribe(stock -> log.info("Updated stock price for {}: {}", stock.getId(), stock.getPrice()));
+                .subscribe(stock -> log.info("Обновлена цена акции для {}: {}", stock.getId(), stock.getPrice()));
+
     }
 
     private Mono<Stock> updateStockPrice(Stock stock) {

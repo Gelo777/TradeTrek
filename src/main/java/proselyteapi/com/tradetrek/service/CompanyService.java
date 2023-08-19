@@ -23,7 +23,7 @@ public class CompanyService {
         return companyRepository.findAll()
                 .switchIfEmpty(Mono.error(new EntityNotFoundException("Список компаний пустой")))
                 .map(companyMapper::toCompanyDto)
-                .doOnNext(companyDto -> log.info("Fetched company: {}", companyDto.getName()))
-                .doOnError(error -> log.error("Error while fetching companies: {}", error.getMessage()));
+                .doOnNext(companyDto -> log.info("Получена компания: {}", companyDto.getName()))
+                .doOnError(error -> log.error("Ошибка при получении компаний: {}", error.getMessage()));
     }
 }

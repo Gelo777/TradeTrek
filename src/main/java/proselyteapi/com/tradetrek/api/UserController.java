@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import proselyteapi.com.tradetrek.model.dto.ApiKeyDto;
+import proselyteapi.com.tradetrek.model.dto.TokenDto;
 import proselyteapi.com.tradetrek.model.dto.UserDto;
 import proselyteapi.com.tradetrek.security.CustomPrincipal;
 import proselyteapi.com.tradetrek.security.SecurityService;
@@ -15,7 +17,7 @@ import proselyteapi.com.tradetrek.service.UserService;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -23,8 +25,8 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public Mono<String> register(@RequestBody UserDto dto) {
-        return userService.registerUser(dto);
+    public Mono<TokenDto> register(@RequestBody UserDto dto) {
+        return userService.registerUser(dto).map(TokenDto::new);
     }
 
     @PostMapping("/login")
@@ -33,8 +35,8 @@ public class UserController {
     }
 
     @GetMapping("/api-key")
-    public Mono<String> getUserInfo(Authentication authentication) {
-        return userService.getApiKey(((CustomPrincipal) authentication.getPrincipal()).getId());
+    public Mono<ApiKeyDto> getUserInfo(Authentication authentication) {
+        return userService.getApiKey(((CustomPrincipal) authentication.getPrincipal()).getId()).map(ApiKeyDto::new);
     }
 }
 

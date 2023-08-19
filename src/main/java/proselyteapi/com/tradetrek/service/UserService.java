@@ -28,18 +28,19 @@ public class UserService {
         user.setApiKey(UUID.randomUUID().toString());
         return userRepository.save(user)
                 .map(User::getApiKey)
-                .doOnSuccess(apiKey -> log.info("Registered user: {}", user.getUsername()));
+                .doOnSuccess(apiKey -> log.info("Зарегистрирован пользователь: {}", user.getUsername()));
     }
 
     public Mono<String> getApiKey(Long id) {
         return userRepository.findById(id)
                 .map(User::getApiKey)
-                .doOnNext(apiKey -> log.info("Fetched API key for user: {}", apiKey));
+                .doOnNext(apiKey -> log.info("Получен API-ключ для пользователя: {}", apiKey));
     }
 
     public Mono<User> getUserByUsername(String username) {
         return userRepository.findByUsername(username)
                 .switchIfEmpty(Mono.error(new EntityNotFoundException("Пользователь не найден")))
-                .doOnNext(user -> log.info("Fetched user: {}", user.getUsername()));
+                .doOnNext(user -> log.info("Получен пользователь: {}", user.getUsername()));
     }
 }
+
