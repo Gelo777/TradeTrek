@@ -28,6 +28,7 @@ import reactor.core.scheduler.Schedulers;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Semaphore;
 
 @Slf4j
@@ -56,32 +57,31 @@ public class WebSecurityConfig {
                 .accessDeniedHandler((swe, e) -> handleAuthenticationError(swe, HttpStatus.FORBIDDEN, "access denied"))
                 .and()
                 .addFilterAt(bearerAuthenticationFilter(authenticationManager), SecurityWebFiltersOrder.AUTHENTICATION)
-                .addFilterAt(apiKeyWebFilter(), SecurityWebFiltersOrder.LAST)
-                .addFilterAt(requestRateLimitFilter(requestRateLimiter), SecurityWebFiltersOrder.FIRST)
+                .addFilterAt(combinedWebFilter(requestRateLimiter), SecurityWebFiltersOrder.FIRST)
                 .build();
     }
 
     @Bean
-    public WebFilter apiKeyWebFilter() {
+    public WebFilter combinedWebFilter(RequestRateLimiter rateLimiter) {
         List<String> allowedUrls = Arrays.asList("/api/register", "/api/login");
 
         return (exchange, chain) ->
-                userRepository.existsByApiKey(exchange.getRequest().getHeaders().getFirst("API-KEY"))
-                        .filter(valid -> allowedUrls.contains(exchange.getRequest().getPath().value()) && valid)
-                        .switchIfEmpty(Mono.fromRunnable(() -> {
-                            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                        }))
-                        .flatMap(valid -> chain.filter(exchange));
-    }
-
-    @Bean
-    public WebFilter requestRateLimitFilter(RequestRateLimiter rateLimiter) {
-        return (exchange, chain) -> rateLimiter.checkAndRegisterRequest()
-                .then(chain.filter(exchange))
-                .onErrorResume(TooManyRequestsException.class, e -> {
-                    exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
-                    return exchange.getResponse().setComplete();
-                });
+                rateLimiter.checkAndRegisterRequest()
+                        .then(Mono.defer(() -> {
+                            if (allowedUrls.contains(exchange.getRequest().getPath().value())) {
+                                return chain.filter(exchange);
+                            } else {
+                                return userRepository.existsByApiKey(exchange.getRequest().getHeaders().getFirst("API-KEY"))
+                                        .flatMap(valid -> {
+                                            if (valid) {
+                                                return chain.filter(exchange);
+                                            } else {
+                                                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                                                return exchange.getResponse().setComplete();
+                                            }
+                                        });
+                            }
+                        }));
     }
 
     private Mono<Void> handleAuthenticationError(ServerWebExchange swe, HttpStatus status, String errorMessage) {

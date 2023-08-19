@@ -26,6 +26,8 @@ public class SchedulerService {
 
     @PostConstruct
     public void initializeStockPrices() {
+        log.info("Initial stock prices initialized");
+
         Stock stock1 = new Stock();
         stock1.setPrice(generateRandomInitialPrice());
 
@@ -46,14 +48,18 @@ public class SchedulerService {
     @Scheduled(cron = "0 * * * * *")
     public void updateStockPrices() {
         updateCache();
-        stockRepository.findAll().flatMap(stock -> {
-            double currentPrice = stock.getPrice();
-            double newPrice = generateNewPrice(currentPrice);
-            stock.setPrice(newPrice);
-            return stockRepository.save(stock);
-        }).subscribe();
+        stockRepository.findAll()
+                .flatMap(this::updateStockPrice)
+                .subscribe(stock -> log.info("Updated stock price for {}: {}", stock.getId(), stock.getPrice()));
     }
 
+    private Mono<Stock> updateStockPrice(Stock stock) {
+        double currentPrice = stock.getPrice();
+        double newPrice = generateNewPrice(currentPrice);
+        stock.setPrice(newPrice);
+        return stockRepository.save(stock);
+    }
+    
     @CacheEvict(value = "stockCache", allEntries = true)
     public void updateCache(){
         log.info("Очистка кеша");
