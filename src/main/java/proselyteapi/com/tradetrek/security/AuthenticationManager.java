@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import proselyteapi.com.tradetrek.model.exception.UnauthorizedException;
 import proselyteapi.com.tradetrek.service.UserService;
 import reactor.core.publisher.Mono;
 
@@ -17,6 +18,7 @@ public class AuthenticationManager implements ReactiveAuthenticationManager {
     public Mono<Authentication> authenticate(Authentication authentication) {
         CustomPrincipal principal = (CustomPrincipal) authentication.getPrincipal();
         return userService.getApiKey(principal.getId())
-                .map(user -> authentication);
+                .flatMap(user -> Mono.just(authentication))
+                .switchIfEmpty(Mono.error(new UnauthorizedException("Unauthorized")));
     }
 }

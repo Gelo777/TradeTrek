@@ -1,6 +1,7 @@
 package proselyteapi.com.tradetrek.security;
 
 import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -12,12 +13,14 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.function.Function;
 
-public record BearerTokenServerAuthenticationConverter(
-        JwtHandler jwtHandler) implements ServerAuthenticationConverter {
+@RequiredArgsConstructor
+public class BearerTokenServerAuthenticationConverter implements ServerAuthenticationConverter {
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final Function<String, Mono<String>> getBearerValue = authValue -> Mono.justOrEmpty(authValue.substring(BEARER_PREFIX.length()));
 
+    private final JwtHandler jwtHandler;
+    
     @Override
     public Mono<Authentication> convert(ServerWebExchange exchange) {
         return extractHeader(exchange)
@@ -26,7 +29,7 @@ public record BearerTokenServerAuthenticationConverter(
                 .flatMap(this::create);
     }
 
-    public Mono<Authentication> create(JwtHandler.VerificationResult verificationResult) {
+    private Mono<Authentication> create(JwtHandler.VerificationResult verificationResult) {
         Claims claims = verificationResult.claims;
         String subject = claims.getSubject();
 
@@ -40,7 +43,6 @@ public record BearerTokenServerAuthenticationConverter(
 
         return Mono.justOrEmpty(new UsernamePasswordAuthenticationToken(principal, null, authorities));
     }
-
 
     private Mono<String> extractHeader(ServerWebExchange exchange) {
         return Mono.justOrEmpty(exchange.getRequest()

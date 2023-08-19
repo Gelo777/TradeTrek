@@ -18,9 +18,9 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class UserController {
+
     private final SecurityService securityService;
     private final UserService userService;
-
 
     @PostMapping("/register")
     public Mono<String> register(@RequestBody UserDto dto) {
@@ -30,14 +30,11 @@ public class UserController {
     @PostMapping("/login")
     public Mono<TokenDetails> login(@RequestBody UserDto dto) {
         return securityService.authenticate(dto.getUsername(), dto.getPassword());
-
     }
 
     @GetMapping("/api-key")
     public Mono<String> getUserInfo(Authentication authentication) {
-        CustomPrincipal customPrincipal = (CustomPrincipal) authentication.getPrincipal();
-        return userService.getApiKey(customPrincipal.getId());
-
+        return userService.getApiKey(((CustomPrincipal) authentication.getPrincipal()).getId());
     }
 }
 

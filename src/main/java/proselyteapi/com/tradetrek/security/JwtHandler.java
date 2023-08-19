@@ -2,6 +2,7 @@ package proselyteapi.com.tradetrek.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import proselyteapi.com.tradetrek.model.exception.TokenExpiredException;
 import proselyteapi.com.tradetrek.model.exception.UnauthorizedException;
 import reactor.core.publisher.Mono;
 
@@ -25,9 +26,8 @@ public class JwtHandler {
         Claims claims = getClaimsFromToken(token);
         final Date expirationDate = claims.getExpiration();
 
-
         if (expirationDate.before(new Date())) {
-            throw new RuntimeException("Token expired");
+            throw new TokenExpiredException("Token expired");
         }
 
         return new VerificationResult(claims, token);

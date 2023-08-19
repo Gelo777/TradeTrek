@@ -65,11 +65,11 @@ public class SecurityService {
 
     public Mono<TokenDetails> authenticate(String username, String password) {
         return userService.getUserByUsername(username)
-                .switchIfEmpty(Mono.error(new AuthException("Invalid username", "PROSELYTE_INVALID_USERNAME")))
+                .switchIfEmpty(Mono.error(new AuthException("Invalid username")))
                 .flatMap(user -> {
 
                     if (!passwordEncoder.matches(password, user.getPassword())) {
-                        return Mono.error(new AuthException("Invalid password", "PROSELYTE_INVALID_PASSWORD"));
+                        return Mono.error(new AuthException("Invalid password"));
                     }
 
                     return Mono.just(generateToken(user).toBuilder()

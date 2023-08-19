@@ -15,6 +15,7 @@ import org.springframework.security.web.server.authentication.AuthenticationWebF
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
+import proselyteapi.com.tradetrek.api.GlobalExceptionHandler;
 import proselyteapi.com.tradetrek.repository.UserRepository;
 import proselyteapi.com.tradetrek.security.AuthenticationManager;
 import proselyteapi.com.tradetrek.security.BearerTokenServerAuthenticationConverter;
@@ -59,16 +60,13 @@ public class WebSecurityConfig {
 
         return (exchange, chain) ->
                 userRepository.existsByApiKey(exchange.getRequest().getHeaders().getFirst("API-KEY"))
-                        .filter(valid -> allowedUrls.stream().anyMatch(url -> url.equals(exchange.getRequest().getPath().value())))
-                        .flatMap(valid -> {
-                            if (Boolean.TRUE.equals(valid)) {
-                                return chain.filter(exchange);
-                            } else {
-                                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                                return exchange.getResponse().setComplete();
-                            }
-                        });
+                        .filter(valid -> allowedUrls.contains(exchange.getRequest().getPath().value()) && valid)
+                        .switchIfEmpty(Mono.fromRunnable(() -> {
+                            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                        }))
+                        .flatMap(valid -> chain.filter(exchange));
     }
+
     private Mono<Void> handleAuthenticationError(ServerWebExchange swe, HttpStatus status, String errorMessage) {
         log.error("IN securityWebFilterChain - {}: {}", status, errorMessage);
         swe.getResponse().setStatusCode(status);

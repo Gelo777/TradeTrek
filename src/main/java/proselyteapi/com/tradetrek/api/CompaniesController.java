@@ -1,7 +1,6 @@
 package proselyteapi.com.tradetrek.api;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,10 +11,10 @@ import reactor.core.publisher.Flux;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class CompaniesController {
 
-    @Autowired
-    private  CompanyService companyService;
+    private final CompanyService companyService;
 
     @GetMapping("/companies")
     public Flux<ResponseEntity<CompanyDto>> getCompanies() {
