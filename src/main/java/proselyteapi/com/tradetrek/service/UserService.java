@@ -6,6 +6,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import proselyteapi.com.tradetrek.model.dto.UserDto;
 import proselyteapi.com.tradetrek.model.entity.User;
+import proselyteapi.com.tradetrek.model.exception.EntityNotFoundException;
 import proselyteapi.com.tradetrek.model.mapper.UserMapper;
 import proselyteapi.com.tradetrek.repository.UserRepository;
 import reactor.core.publisher.Mono;
@@ -35,6 +36,6 @@ public class UserService {
     }
 
     public Mono<User> getUserByUsername(String username) {
-        return userRepository.findByUsername(username);
+        return userRepository.findByUsername(username).switchIfEmpty(Mono.error(new EntityNotFoundException("Список компаний пустой")));
     }
 }

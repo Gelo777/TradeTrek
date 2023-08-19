@@ -16,14 +16,19 @@ import org.springframework.security.web.server.util.matcher.ServerWebExchangeMat
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import proselyteapi.com.tradetrek.api.GlobalExceptionHandler;
+import proselyteapi.com.tradetrek.model.exception.TooManyRequestsException;
 import proselyteapi.com.tradetrek.repository.UserRepository;
 import proselyteapi.com.tradetrek.security.AuthenticationManager;
 import proselyteapi.com.tradetrek.security.BearerTokenServerAuthenticationConverter;
 import proselyteapi.com.tradetrek.security.JwtHandler;
+import proselyteapi.com.tradetrek.security.RequestRateLimiter;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 @Slf4j
 @Configuration
@@ -35,6 +40,7 @@ public class WebSecurityConfig {
     private String secret;
     private final String[] publicRoutes = {"/api/register", "/api/login"};
     private final UserRepository userRepository;
+    private final RequestRateLimiter requestRateLimiter;
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http, AuthenticationManager authenticationManager) {
@@ -50,7 +56,8 @@ public class WebSecurityConfig {
                 .accessDeniedHandler((swe, e) -> handleAuthenticationError(swe, HttpStatus.FORBIDDEN, "access denied"))
                 .and()
                 .addFilterAt(bearerAuthenticationFilter(authenticationManager), SecurityWebFiltersOrder.AUTHENTICATION)
-                .addFilterAt(apiKeyWebFilter(), SecurityWebFiltersOrder.FIRST)
+                .addFilterAt(apiKeyWebFilter(), SecurityWebFiltersOrder.LAST)
+                .addFilterAt(requestRateLimitFilter(requestRateLimiter), SecurityWebFiltersOrder.FIRST)
                 .build();
     }
 
@@ -65,6 +72,16 @@ public class WebSecurityConfig {
                             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                         }))
                         .flatMap(valid -> chain.filter(exchange));
+    }
+
+    @Bean
+    public WebFilter requestRateLimitFilter(RequestRateLimiter rateLimiter) {
+        return (exchange, chain) -> rateLimiter.checkAndRegisterRequest()
+                .then(chain.filter(exchange))
+                .onErrorResume(TooManyRequestsException.class, e -> {
+                    exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
+                    return exchange.getResponse().setComplete();
+                });
     }
 
     private Mono<Void> handleAuthenticationError(ServerWebExchange swe, HttpStatus status, String errorMessage) {
