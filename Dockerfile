@@ -17,7 +17,7 @@ RUN ./mvnw clean package
 
 
 FROM openjdk:17-jdk-slim 
-COPY --from=builder /app/target/backend-0.0.1-SNAPSHOT.jar /usr/local/lib/backend.jar
+COPY --from=builder /app/target/TradeTrek-0.0.1-SNAPSHOT.jar /usr/local/lib/backend.jar
 
 EXPOSE 8080
 
